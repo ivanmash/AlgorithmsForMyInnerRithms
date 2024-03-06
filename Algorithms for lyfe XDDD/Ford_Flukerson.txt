@@ -1,0 +1,194 @@
+#include <iostream>
+#include <unordered_map>
+#include <map>
+#include <vector>
+#include <queue>
+#include <climits>
+#include <algorithm>
+
+
+// like with Weighted Graphs
+using Network = std::unordered_map<int, std::unordered_map<int,int>>;
+
+/*
+Network g;
+g[u]: all the neighbors of node u
+g[u][v]: from node u to node v I have an edge with capacity c
+*/
+
+using Flow = std::map<int, std::unordered_map<int,int>>;
+
+/*
+Flow f
+f[x][y] = n, flow from node x to node y is equal to n
+*/
+
+void initFlow(Network& g, Flow& f)
+{
+    // move through all pairs (u,v) of g, and
+    // each edge (u,v) in the network g will be set with flow f[u][v] = 0
+    for (std::pair<int, std::unordered_map<int,int>> el : g)
+    {
+        int u = el.first;
+        for (std::pair<int,int> m : el.second)
+        {
+            int v = m.first;
+            f[u][v] = 0;
+        }
+    }
+}
+
+void calculateResidualGraph(Network& g, Flow& f, Network& residualGraph)
+{
+    // Iterate through all pairs (u,v) of the original network g
+    // For each pair (u,v):
+    for (std::pair<int, std::unordered_map<int,int>> el : g)
+    {
+        int u = el.first;
+        for (std::pair<int,int> m : el.second)
+        {
+            int v = m.first;
+            residualGraph[u][v] = g[u][v] - f[u][v];
+            residualGraph[v][u] = f[u][v];
+        }
+    }
+}
+
+bool isVisited(int node, const std::vector<int>& path)
+{
+    // Return true if 'node' is in the vector path
+    // False, otherwise
+    return std::find(path.begin(), path.end(), node) != path.end();
+}
+
+// how to get the path
+// Apply BFS to get a path from S to T
+// Not only to traverse the graph, but also to save the nodes in the path
+std::vector<int> getPath(Network& g, int source, int sink)
+{
+    std::queue<std::vector<int>> q; // queue which stores the path
+
+    std::vector<int> path; // current path
+
+    path.push_back(source);
+    q.push(path);
+
+    // while there are possible paths that could reach the sink
+    while(q.size() > 0)
+    {
+        path = q.front(); // take the next possible path
+        q.pop();
+
+        int lastNode = path[path.size() - 1];
+
+        if (lastNode == sink)
+        {
+            return path;
+        }
+
+        // if we still have not reached the sink
+        // check current neighbors of last Node
+        for (auto [nextNode, edgeCapacity] : g[lastNode])
+        {
+            // I would like to add nextNode to my path
+            if(!isVisited(nextNode,path) && edgeCapacity > 0)
+            {
+                std::vector<int> newPath(path);
+                newPath.push_back(nextNode);
+
+                q.push(newPath);
+            }
+        }
+    }
+    return {}; // no path found! empty path
+}
+
+/***************************************
+ * FORD FULKERSON MAIN FUNCTION
+ * ***************************************/
+
+Flow fordFulkerson(Network& g, int source, int sink)
+{
+    Flow f;
+
+    // Step 1. Initialize the flow for each edge in the network
+    // each edge (u,v) in the network g will be set with flow f[u][v] = 0
+    initFlow(g, f);
+
+    // Step 2. Create the residual graph for the network g
+    Network residualGraph;
+    calculateResidualGraph(g, f, residualGraph); // create/update residual graph
+
+    // Step 3. Get a path from the source to the sink of the residual graph
+    // the path is represented like the sequence of nodes in the path
+    // Example: path = [s,2,5,t]. (path[i-1],path[i]) is an edge in the path
+
+    std::vector<int> path = getPath(residualGraph, source, sink);
+
+    // while there is path from source to the sink
+    // Check if the last element of path is the sink. If true, we got a path.
+    while(path.size() > 0)
+    {
+        // Step 4. Let's get the bottleneck capacity!
+        // find the minimum value of edges in the path
+        int bottleneck = INT_MAX; // current value
+        for (int i = 1; i < path.size(); i++)
+        {
+            int startNode = path[i - 1];
+            int endNode = path[i];
+            // how to get value of edge (startNode, endNode) of the residual graph
+            bottleneck = std::min(bottleneck, residualGraph[startNode][endNode]);
+        }
+
+        // Step 5. Update the flow f with the "bottleneck" value
+        // You will need to iterate through elements in the "path" variable and update
+        // the flows f
+        for (int i = 1; i < path.size(); i++)
+        {
+            int startNode = path[i - 1];
+            int endNode = path[i];
+            f[startNode][endNode] += bottleneck;
+            f[endNode][startNode] -= bottleneck;
+        }
+
+        // Repeat Steps 2 and 3
+        calculateResidualGraph(g, f, residualGraph); // create/update residual graph
+        path = getPath(residualGraph, source, sink);
+
+//        for (std::pair<int, std::unordered_map<int, int>> el : f)
+//            for (std::pair<int, int> m : el.second)
+//                std::cout << f[el.first][m.first];
+//        std::cout << "\n\n";
+    }
+    return f;
+}
+
+int main()
+{
+    // Construct a network g and calculate its flow mapping by calling fordFulkerson(g, source, sink);
+//    std::unordered_map<int, std::unordered_map<int,int>>;
+    Network graph = {
+            {1, {{4, 10}, {2, 9}}},
+            {2, {{3, 2}, {5, 10}}},
+            {3, {{5, 4}}},
+            {4, {{3, 6}, {5, 5}}},
+            {5, {}}
+    };
+    int ans = 0;
+
+
+    Flow f = fordFulkerson(graph, 1, 5);
+
+    for (std::pair<int, std::unordered_map<int, int>> el : f)
+        for (std::pair<int, int> m : el.second)
+        {
+            if (graph[el.first].find(m.first) != graph[el.first].end())
+                std::cout << el.first << " to " << m.first << ": " << f[el.first][m.first] << '\n';
+        }
+
+    for (std::pair<int, int> m : f[5])
+        ans -= m.second;
+    std::cout << ans;
+
+    return 0;
+}
