@@ -1,0 +1,53 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <algorithm>
+
+std::vector<std::pair<int, int>> findTraversal(std::vector<std::vector<int>>& graph, size_t start)
+{
+    std::vector<int> dist(graph.size(), -1);
+    dist[start] = 0;
+    std::queue<int> q;
+    q.push(start);
+    while (!q.empty())
+    {
+        size_t cur = q.front();
+        q.pop();
+        for (size_t neighbor : graph[cur])
+            if (dist[neighbor] == -1)
+            {
+                dist[neighbor] = dist[cur] + 1;
+                q.push(neighbor);
+            }
+    }
+    std::vector<std::pair<int, int>> ans;
+    for (int i = 0; i < dist.size(); ++i)
+        if (dist[i] != -1)
+            ans.push_back({i, dist[i]});
+    return ans;
+}
+
+bool comp(std::pair<int, int>& lhv, std::pair<int, int>& rhv)
+{
+    return lhv.second < rhv.second;
+}
+
+int main()
+{
+    size_t N, M, v;
+    std::cin >> N >> M >> v;
+    std::vector<std::vector<int>> g(N);
+    for (int i = 0; i < M; ++i)
+    {
+        int v1, v2;
+        std::cin >> v1 >> v2;
+        g[v1 - 1].push_back(v2 - 1);
+        g[v2 - 1].push_back(v1 - 1);
+    }
+    std::vector<std::pair<int, int>> ans = findTraversal(g, v - 1);
+    std::sort(ans.begin(), ans.end(), comp);
+    std::cout << ans.size() << '\n';
+    for (std::pair<int, int> el : ans)
+        std::cout << el.first + 1 << ' ';
+    return 0;
+}
