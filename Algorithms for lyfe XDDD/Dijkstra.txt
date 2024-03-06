@@ -1,0 +1,45 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <climits>
+
+int dijkstra(std::vector<std::vector<int>>& graph,int n, int start, int end)
+{
+    std::vector<int> dist(n, INT_MAX);
+    dist[start - 1] = 0;
+    std::priority_queue<std::pair<int, int>, std::vector<std::pair<int, int>>, std::greater<std::pair<int, int>>> pq;
+    pq.push({0, start - 1});
+    while (!pq.empty())
+    {
+        int s = pq.top().second;
+        int f = pq.top().first;
+        pq.pop();
+        if (f > dist[s])
+            continue;
+        for (int i = 0; i < n; ++i)
+        {
+            if (graph[s][i] != -1)
+            {
+                int w = graph[s][i];
+                if (dist[s] + w < dist[i])
+                {
+                    dist[i] = dist[s] + w;
+                    pq.push({dist[i], i});
+                }
+            }
+        }
+    }
+    return (dist[end - 1] == INT_MAX) ? -1 : dist[end - 1];
+}
+
+int main()
+{
+    int N, start, end;
+    std::cin >> N >> start >> end;
+    std::vector<std::vector<int>> graph(N, std::vector<int>(N));
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            std::cin >> graph[i][j];
+    std::cout << dijkstra(graph, N, start, end);
+    return 0;
+}

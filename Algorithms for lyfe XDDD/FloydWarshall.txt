@@ -1,0 +1,31 @@
+#include <iostream>
+#include <vector>
+
+void FloydWarshall(std::vector<std::vector<int>>& graph, int N)
+{
+    for (int k = 0; k < N; ++k)
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                if (graph[i][k] + graph[k][j] < graph[i][j])
+                    graph[i][j] = graph[i][k] + graph[k][j];
+}
+
+int main()
+{
+    int N;
+    std::cin >> N;
+    std::vector<std::vector<int>> graph(N, std::vector<int>(N));
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            std::cin >> graph[i][j];
+    FloydWarshall(graph, N);
+    for (int i = 0; i < N; ++i)
+    {
+        std::cout << graph[i][0];
+        for (int j = 1; j < N; ++j)
+            std::cout << " " << graph[i][j];
+        std::cout <<"\n";
+    }
+
+    return 0;
+}
